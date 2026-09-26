@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>XTK Cube Art Visualization</title>
+    <style>
+      html, body {
+        background-color: #05050d;
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+        color: #ffffff;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      }
+
+      #hud {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        z-index: 10;
+        pointer-events: none;
+        background: rgba(10, 15, 30, 0.75);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 10px;
+        padding: 14px 18px;
+        backdrop-filter: blur(8px);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      }
+
+      h1 {
+        margin: 0 0 6px 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      p {
+        margin: 4px 0;
+        font-size: 0.85rem;
+        color: #b0b8c4;
+      }
+
+      .highlight {
+        color: #4ecdc4;
+        font-weight: 500;
+      }
+    </style>
+    <!-- XTK WebGL Framework -->
+    <script type="text/javascript" src="https://get.goXTK.com/xtk_edge.js"></script>
+    <script type="text/javascript">
+      window.onload = function() {
+        // Initialize XTK 3D Renderer
+        var r = new X.renderer3D();
+        r.init();
+
+        var cubes = [];
+        var numRings = 4;
+        var cubesPerRing = 14;
+        var baseRadius = 25;
+
+        // Generate multiple cubes in concentric 3D orbital rings
+        for (var ring = 0; ring < numRings; ring++) {
+          var radius = baseRadius + ring * 22;
+          var heightOffset = (ring - (numRings - 1) / 2) * 20;
+
+          for (var i = 0; i < cubesPerRing; i++) {
+            var angle = (i / cubesPerRing) * Math.PI * 2;
+            var x = Math.cos(angle) * radius;
+            var y = Math.sin(angle) * radius;
+            var z = heightOffset + Math.sin(angle * 2) * 12;
+
+            var cube = new X.cube();
+            var size = 6 + (ring % 2) * 3;
+            cube.lengthX = cube.lengthY = cube.lengthZ = size;
+            cube.center = [x, y, z];
+            cube.opacity = 0.9;
+
+            // Initial color
+            cube.color = [0.5, 0.5, 0.5];
+
+            // Store custom animation properties
+            cube.rotSpeedX = (Math.random() * 2 - 1) * 2.0;
+            cube.rotSpeedY = (Math.random() * 2 - 1) * 2.5;
+            cube.rotSpeedZ = (Math.random() * 2 - 1) * 1.8;
+            cube.colorPhase = angle + ring * 0.8;
+
+            r.add(cube);
+            cubes.push(cube);
+          }
+        }
+
+        // Add a prominent central core cube
+        var coreCube = new X.cube();
+        coreCube.lengthX = coreCube.lengthY = coreCube.lengthZ = 18;
+        coreCube.center = [0, 0, 0];
+        coreCube.color = [1.0, 0.8, 0.2];
+        coreCube.opacity = 0.95;
+        coreCube.rotSpeedX = 1.2;
+        coreCube.rotSpeedY = 1.6;
+        coreCube.rotSpeedZ = 0.8;
+        coreCube.colorPhase = 0;
+        r.add(coreCube);
+        cubes.push(coreCube);
+
+        var tick = 0;
+
+        // Animation loop triggered on each render frame
+        r.onRender = function() {
+          tick += 1;
+
+          // Animate and update each cube
+          for (var i = 0; i < cubes.length; i++) {
+            var c = cubes[i];
+
+            // Rotate cube along individual axes
+            c.transform.rotateX(c.rotSpeedX);
+            c.transform.rotateY(c.rotSpeedY);
+            c.transform.rotateZ(c.rotSpeedZ);
+
+            // Dynamically cycle colors through a smooth RGB wave
+            var phase = tick * 0.025 + c.colorPhase;
+            var red = 0.5 + 0.5 * Math.sin(phase);
+            var green = 0.5 + 0.5 * Math.sin(phase + 2.094); // 120 degree shift
+            var blue = 0.5 + 0.5 * Math.sin(phase + 4.189);  // 240 degree shift
+
+            c.color = [red, green, blue];
+          }
+
+          // Smoothly rotate the camera around the scene
+          r.camera.rotate([0.35, 0.15]);
+        };
+
+        // Start rendering
+        r.render();
+      };
+    </script>
+  </head>
+  <body>
+    <div id="hud">
+      <h1>XTK Cube Art</h1>
+      <p>Framework: <span class="highlight">XTK WebGL</span></p>
+      <p>Controls: <span class="highlight">Left-click</span> to rotate, <span class="highlight">Scroll</span> to zoom</p>
+    </div>
+  </body>
+</html>

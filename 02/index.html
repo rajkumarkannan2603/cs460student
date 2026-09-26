@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Cube Solar System - XTK</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      html, body {
+        background-color: #060610;
+        background: radial-gradient(circle at 50% 50%, #0d0f22 0%, #05050b 100%);
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+        color: #ffffff;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        user-select: none;
+      }
+
+      /* Top Header: Title & Concept Reference */
+      #header {
+        position: absolute;
+        top: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        text-align: center;
+        z-index: 10;
+        pointer-events: none;
+      }
+
+      #header h1 {
+        margin: 0;
+        font-size: 1.6rem;
+        font-weight: 700;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+        color: #f0f4fc;
+        text-shadow: 0 0 20px rgba(180, 100, 255, 0.5);
+      }
+
+      #header h2 {
+        margin: 4px 0 0 0;
+        font-size: 0.85rem;
+        font-weight: 400;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: #8c9bb5;
+      }
+
+      /* Bottom Reference Controls Bar */
+      #controls-bar {
+        position: absolute;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10;
+        background: rgba(14, 18, 36, 0.82);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 30px;
+        padding: 12px 28px;
+        backdrop-filter: blur(12px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        font-size: 0.85rem;
+        letter-spacing: 1px;
+        font-weight: 500;
+        cursor: pointer;
+      }
+
+      .control-item {
+        color: #d2daea;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .control-key {
+        color: #ff6eb4;
+        font-weight: 700;
+      }
+
+      .control-separator {
+        color: rgba(255, 255, 255, 0.25);
+        font-weight: 300;
+      }
+
+      #status-badge {
+        display: inline-block;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 1px;
+        padding: 3px 8px;
+        border-radius: 12px;
+        background: rgba(78, 205, 196, 0.2);
+        color: #4ecdc4;
+        border: 1px solid rgba(78, 205, 196, 0.4);
+        margin-left: 6px;
+        text-transform: uppercase;
+        transition: all 0.2s ease;
+      }
+
+      #status-badge.paused {
+        background: rgba(255, 107, 107, 0.2);
+        color: #ff6b6b;
+        border-color: rgba(255, 107, 107, 0.4);
+      }
+
+      /* Legend Labels overlay */
+      #legend {
+        position: absolute;
+        top: 24px;
+        left: 24px;
+        z-index: 10;
+        pointer-events: none;
+        background: rgba(10, 14, 28, 0.65);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+        padding: 12px 16px;
+        font-size: 0.78rem;
+        color: #a2b0c6;
+        line-height: 1.6;
+        backdrop-filter: blur(8px);
+      }
+
+      .legend-dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 2px;
+        margin-right: 6px;
+        vertical-align: middle;
+      }
+
+      .dot-core { background: #e63995; }
+      .dot-orbit { background: #5599ff; }
+    </style>
+
+    <!-- XTK WebGL Framework -->
+    <script type="text/javascript" src="https://get.goXTK.com/xtk_edge.js"></script>
+    <script type="text/javascript">
+      window.onload = function() {
+        // Initialize XTK 3D Renderer
+        var r = new X.renderer3D();
+        r.init();
+
+        // Position camera for the oblique tilted orbital perspective matching sketch.jpeg
+        r.camera.position = [0, -170, 75];
+        r.camera.focus = [0, 0, 0];
+        r.camera.up = [0, 0, 1];
+
+        // -----------------------------------------------------------
+        // 1. SLOWLY SPINNING CORE (Large central magenta/pink cube)
+        // -----------------------------------------------------------
+        var core = new X.cube();
+        core.lengthX = core.lengthY = core.lengthZ = 32;
+        core.center = [0, 0, 0];
+        core.color = [0.88, 0.16, 0.56]; // Vibrant magenta as sketched
+        core.opacity = 0.88;
+        r.add(core);
+
+        // -----------------------------------------------------------
+        // 2. ORBIT TRACK (Subtle circular path markers)
+        // -----------------------------------------------------------
+        var orbitRadius = 75;
+        var numTrackPoints = 48;
+        for (var tIdx = 0; tIdx < numTrackPoints; tIdx++) {
+          var tAngle = (tIdx / numTrackPoints) * Math.PI * 2;
+          var tCube = new X.cube();
+          tCube.lengthX = tCube.lengthY = tCube.lengthZ = 1.3;
+          tCube.center = [
+            Math.cos(tAngle) * orbitRadius,
+            Math.sin(tAngle) * orbitRadius,
+            0
+          ];
+          tCube.color = [0.35, 0.45, 0.65];
+          tCube.opacity = 0.35;
+          r.add(tCube);
+        }
+
+        // -----------------------------------------------------------
+        // 3. SMALL ORBITING CUBES (Planets from sketch.jpeg)
+        // -----------------------------------------------------------
+        // 4 cubes spaced evenly around the orbital track
+        var planetConfigs = [
+          {
+            name: "Planet 1 (Light Blue)",
+            angleOffset: Math.PI * 0.25, // Top-left quadrant (~45 deg)
+            baseColor: [0.38, 0.75, 0.98], // Sky/light blue
+            phaseOffset: 0.0
+          },
+          {
+            name: "Planet 2 (Royal Blue)",
+            angleOffset: Math.PI * 0.75, // Top-right quadrant (~135 deg)
+            baseColor: [0.15, 0.42, 0.92], // Royal deep blue
+            phaseOffset: 1.57
+          },
+          {
+            name: "Planet 3 (Purple)",
+            angleOffset: Math.PI * 1.25, // Bottom-right quadrant (~225 deg)
+            baseColor: [0.65, 0.22, 0.82], // Purple / violet
+            phaseOffset: 3.14
+          },
+          {
+            name: "Planet 4 (Slate)",
+            angleOffset: Math.PI * 1.75, // Bottom-left quadrant (~315 deg)
+            baseColor: [0.48, 0.54, 0.68], // Slate / indigo-grey
+            phaseOffset: 4.71
+          }
+        ];
+
+        var planets = [];
+        var planetSize = 9.5;
+
+        for (var p = 0; p < planetConfigs.length; p++) {
+          var cfg = planetConfigs[p];
+          var planetCube = new X.cube();
+          planetCube.lengthX = planetCube.lengthY = planetCube.lengthZ = planetSize;
+
+          // Position cube at initial coordinate along orbit
+          var px = Math.cos(cfg.angleOffset) * orbitRadius;
+          var py = Math.sin(cfg.angleOffset) * orbitRadius;
+          planetCube.center = [px, py, 0];
+          planetCube.color = [cfg.baseColor[0], cfg.baseColor[1], cfg.baseColor[2]];
+          planetCube.opacity = 0.92;
+
+          r.add(planetCube);
+
+          planets.push({
+            cube: planetCube,
+            baseColor: cfg.baseColor,
+            phaseOffset: cfg.phaseOffset
+          });
+        }
+
+        // -----------------------------------------------------------
+        // 4. ANIMATION & CONTROLS STATE
+        // -----------------------------------------------------------
+        var isPaused = false;
+        var tick = 0;
+        var orbitSpeedDeg = 0.55; // Counter-clockwise orbital speed per frame
+
+        var statusBadge = document.getElementById("status-badge");
+        var controlsBar = document.getElementById("controls-bar");
+
+        function togglePause() {
+          isPaused = !isPaused;
+          if (isPaused) {
+            statusBadge.textContent = "PAUSED";
+            statusBadge.classList.add("paused");
+          } else {
+            statusBadge.textContent = "ACTIVE";
+            statusBadge.classList.remove("paused");
+          }
+        }
+
+        // Spacebar toggles pause
+        window.addEventListener("keydown", function(e) {
+          if (e.code === "Space" || e.keyCode === 32 || e.key === " ") {
+            e.preventDefault();
+            togglePause();
+          }
+        });
+
+        // Clicking bottom controls bar also toggles pause
+        controlsBar.addEventListener("click", function() {
+          togglePause();
+        });
+
+        // -----------------------------------------------------------
+        // 5. RENDER LOOP (onRender callback)
+        // -----------------------------------------------------------
+        r.onRender = function() {
+          if (isPaused) {
+            return;
+          }
+
+          tick += 1;
+
+          // Slowly spin the central core
+          core.transform.rotateZ(0.28);
+          core.transform.rotateX(0.14);
+          core.transform.rotateY(0.09);
+
+          // Animate orbiting small cubes
+          var colorWave = tick * 0.015;
+
+          for (var i = 0; i < planets.length; i++) {
+            var item = planets[i];
+
+            // Revolve cube around the origin (orbital motion)
+            item.cube.transform.rotateZ(orbitSpeedDeg);
+
+            // Dynamically change colors over time as indicated in sketch.jpeg
+            var phase = colorWave + item.phaseOffset;
+            var rChannel = item.baseColor[0] + 0.22 * Math.sin(phase);
+            var gChannel = item.baseColor[1] + 0.22 * Math.sin(phase + 2.094);
+            var bChannel = item.baseColor[2] + 0.22 * Math.sin(phase + 4.188);
+
+            // Keep RGB values in valid [0.0, 1.0] range
+            item.cube.color = [
+              Math.max(0.08, Math.min(1.0, rChannel)),
+              Math.max(0.08, Math.min(1.0, gChannel)),
+              Math.max(0.08, Math.min(1.0, bChannel))
+            ];
+          }
+        };
+
+        // Start rendering the scene
+        r.render();
+      };
+    </script>
+  </head>
+  <body>
+    <!-- Top Header -->
+    <div id="header">
+      <h1>Cube Solar System</h1>
+      <h2>Concept Reference</h2>
+    </div>
+
+    <!-- Legend -->
+    <div id="legend">
+      <div><span class="legend-dot dot-core"></span> Slowly Spinning Core</div>
+      <div><span class="legend-dot dot-orbit"></span> Orbiting Small Cubes</div>
+    </div>
+
+    <!-- Bottom Controls Reference Bar matching sketch.jpeg -->
+    <div id="controls-bar" title="Click or press SPACE to pause/resume">
+      <div class="control-item">
+        <span class="control-key">DRAG:</span> rotate view
+      </div>
+      <span class="control-separator">|</span>
+      <div class="control-item">
+        <span class="control-key">SCROLL:</span> zoom
+      </div>
+      <span class="control-separator">|</span>
+      <div class="control-item">
+        <span class="control-key">SPACE:</span> pause
+      </div>
+      <span id="status-badge">ACTIVE</span>
+    </div>
+  </body>
+</html>
