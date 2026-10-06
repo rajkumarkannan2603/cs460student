@@ -32,6 +32,7 @@
         var LASTOBJECT = null;
         var isDragging = false;
         var FLICKERING = false;
+        var WIREFRAME = false;
 
         window.onload = function () {
 
@@ -82,7 +83,7 @@
                         console.log('Ray to Invisible Plane', intersects[0].point);
 
                         // create a new torus knot at clicked position with its own material
-                        var new_material = new THREE.MeshStandardMaterial({ color: 0xFF69B4 });
+                        var new_material = new THREE.MeshStandardMaterial({ color: 0xFF69B4, wireframe: WIREFRAME });
                         var new_torus = new THREE.Mesh(geometry, new_material);
                         new_torus.position.set(intersects[0].point.x, intersects[0].point.y, intersects[0].point.z);
                         scene.add(new_torus);
@@ -135,6 +136,19 @@
                         }
                     }
                 }
+
+                if (e.key === 'w' || e.key === 'W') {
+                    WIREFRAME = !WIREFRAME;
+                    window.WIREFRAME = WIREFRAME;
+
+                    for (var i = 0; i < scene.children.length; i++) {
+                        var child = scene.children[i];
+                        if (child.isMesh && child !== invisible_plane) {
+                            child.material.wireframe = WIREFRAME;
+                            child.material.needsUpdate = true;
+                        }
+                    }
+                }
             };
 
 
@@ -148,7 +162,7 @@
 
             // configure torus knot
             var geometry = new THREE.TorusKnotGeometry(10, 3, 64, 8);
-            var material = new THREE.MeshStandardMaterial({ color: 0xFF69B4 });
+            var material = new THREE.MeshStandardMaterial({ color: 0xFF69B4, wireframe: WIREFRAME });
 
             var torus = new THREE.Mesh(geometry, material);
 
