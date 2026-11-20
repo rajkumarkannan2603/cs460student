@@ -934,7 +934,7 @@
         </div>
       </div>
 
-      <!-- Right Card: Blender Remaster -->
+      <!-- Right Card: Blender Edited Model -->
       <div class="model-card edited-card" id="card-edited">
         <div class="card-header">
           <span class="pill-badge edited-badge">
@@ -946,8 +946,8 @@
           </button>
         </div>
         <div class="card-body">
-          <div class="card-title">Turtle Remastered</div>
-          <div class="card-subtitle">Refined and sculpted in Blender 3D. Holes filled, geometry smoothed, non-manifold edges cleaned, and optimized for physical 3D printing.</div>
+          <div class="card-title">Edited Turtle Model</div>
+          <div class="card-subtitle">Edited in Blender 3D. Background and floor vertices trimmed in Edit mode to isolate the scanned turtle model.</div>
           
           <div class="specs-grid">
             <div class="spec-item">
@@ -959,8 +959,8 @@
               <div class="spec-val" id="edited-verts">—</div>
             </div>
             <div class="spec-item">
-              <div class="spec-label">Topology</div>
-              <div class="spec-val" style="color: var(--amber-glow);">Watertight</div>
+              <div class="spec-label">Edit Type</div>
+              <div class="spec-val" style="color: var(--amber-glow);">Trimmed</div>
             </div>
             <div class="spec-item">
               <div class="spec-label">Asset File</div>
@@ -1068,7 +1068,7 @@
       <div class="modal-section">
         <h4>About This Assignment (CS460)</h4>
         <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 8px;">
-          This interactive comparison tool displays a real-world physical object scanned with <strong>Polycam LiDAR / Photogrammetry</strong>, alongside its cleaned, manifold-repaired, and retopologized counterpart sculpted inside <strong>Blender 3D</strong>.
+          This interactive comparison tool displays a real-world physical object scanned with <strong>Polycam LiDAR / Photogrammetry</strong>, alongside the edited model from <strong>Blender 3D</strong> where floor and background vertices were removed to isolate the subject.
         </p>
       </div>
 
@@ -1264,6 +1264,18 @@
         item.file,
         (gltf) => {
           const model = gltf.scene;
+
+          // Explicitly set the imported mesh root node quaternion to identity (Assignment 5 Step 6)
+          const meshRoot = (gltf.scenes && gltf.scenes[0] && gltf.scenes[0].children && gltf.scenes[0].children[0])
+            ? gltf.scenes[0].children[0]
+            : (model.children && model.children[0] ? model.children[0] : model);
+
+          meshRoot.quaternion.set(0, 0, 0, 1);
+          meshRoot.quaternion.w = 1;
+          meshRoot.quaternion.x = 0;
+          meshRoot.quaternion.y = 0;
+          meshRoot.quaternion.z = 0;
+          model.quaternion.identity();
           
           let verts = 0;
           let tris = 0;
@@ -1719,6 +1731,13 @@
       }
       if (models.edited.holder && models.edited.rotationTarget) {
         models.edited.holder.quaternion.slerp(models.edited.rotationTarget, 0.12);
+      }
+      if (models.edited.normalHelpers && models.edited.normalHelpers.length > 0) {
+        models.edited.normalHelpers.forEach((helper) => {
+          if (helper && typeof helper.update === "function") {
+            helper.update();
+          }
+        });
       }
 
       controls.update();
