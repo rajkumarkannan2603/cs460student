@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PolyCam Model — Babylon.js WebGPU PBR Bonus</title>
+    <style>
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background-color: #0b0f19;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      }
+
+      #renderCanvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+      }
+
+      #message {
+        position: fixed;
+        top: 16px;
+        left: 16px;
+        z-index: 20;
+        padding: 10px 16px;
+        color: #ffffff;
+        background: rgba(15, 23, 42, 0.88);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 8px;
+        font-size: 14px;
+        line-height: 1.4;
+        max-width: 440px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      }
+
+      #ui-panel {
+        position: fixed;
+        top: 16px;
+        left: 16px;
+        z-index: 10;
+        background: rgba(15, 23, 42, 0.88);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 12px;
+        padding: 14px 16px;
+        color: #f8fafc;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        display: none;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      .panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .panel-title {
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        color: #ffffff;
+      }
+
+      .badge {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 9999px;
+        background: rgba(59, 130, 246, 0.2);
+        color: #60a5fa;
+        border: 1px solid rgba(99, 102, 241, 0.3);
+      }
+
+      .btn-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+
+      .look-btn {
+        background: rgba(255, 255, 255, 0.08);
+        color: #cbd5e1;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        padding: 8px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        font-family: inherit;
+        transition: all 0.2s ease;
+        text-align: center;
+        white-space: nowrap;
+      }
+
+      .look-btn:hover {
+        background: rgba(255, 255, 255, 0.18);
+        color: #ffffff;
+        transform: translateY(-1px);
+      }
+
+      .look-btn.active {
+        background: #2563eb;
+        color: #ffffff;
+        border-color: #60a5fa;
+        font-weight: 600;
+        box-shadow: 0 0 12px rgba(37, 99, 235, 0.5);
+      }
+
+      .look-btn[data-look="reflectiveChrome"].active {
+        background: linear-gradient(135deg, #f1f5f9 0%, #cbd5e1 50%, #94a3b8 100%);
+        color: #0f172a;
+        border-color: #ffffff;
+        font-weight: 700;
+        box-shadow: 0 0 16px rgba(255, 255, 255, 0.5);
+      }
+
+      #status-indicator {
+        font-size: 11px;
+        color: #94a3b8;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        padding-top: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      #status-indicator .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #22c55e;
+      }
+    </style>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylon.glTF2FileLoader.min.js"></script>
+  </head>
+  <body>
+    <div id="message">Starting WebGPU &amp; Loading poly.glb…</div>
+    <canvas id="renderCanvas"></canvas>
+
+    <div id="ui-panel">
+      <div class="panel-header">
+        <span class="panel-title">PBR Material Looks</span>
+        <span class="badge">WebGPU</span>
+      </div>
+      <div class="btn-group">
+        <button class="look-btn active" data-look="original" id="btn-original">Original Scan</button>
+        <button class="look-btn" data-look="wetGloss" id="btn-wetGloss">Wet Gloss</button>
+        <button class="look-btn" data-look="pearlescent" id="btn-pearlescent">Pearlescent</button>
+        <button class="look-btn" data-look="moonlitBlue" id="btn-moonlitBlue">Moonlit Blue</button>
+        <button class="look-btn" data-look="reflectiveChrome" id="btn-reflectiveChrome" style="grid-column: span 2;" title="Shiny silver-and-gold mirror chrome reflections">Reflective Chrome</button>
+        <button class="look-btn" id="btn-screenshot" style="grid-column: span 2; margin-top: 4px; background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.35); color: #93c5fd;" title="Capture screenshot for Part 7 submission">
+          📸 Capture Screenshot (Part 7)
+        </button>
+      </div>
+      <div id="status-indicator">
+        <span class="dot"></span>
+        <span id="status-text">Active look: Original Scan</span>
+      </div>
+    </div>
+
+    <script type="module">
+      const canvas = document.getElementById("renderCanvas");
+      const message = document.getElementById("message");
+      const uiPanel = document.getElementById("ui-panel");
+      const statusText = document.getElementById("status-text");
+      const lookButtons = document.querySelectorAll(".look-btn");
+
+      try {
+        // Verify browser WebGPU capability
+        if (!navigator.gpu) {
+          throw new Error(
+            "WebGPU is not supported by this browser. Please enable WebGPU in chrome://flags or edge://flags, or use a compatible browser."
+          );
+        }
+
+        const engine = new BABYLON.WebGPUEngine(canvas, {
+          antialiasing: true,
+        });
+        await engine.initAsync();
+
+        const scene = new BABYLON.Scene(engine);
+        scene.clearColor = new BABYLON.Color4(0.05, 0.07, 0.11, 1.0);
+
+        message.textContent = "Loading poly.glb…";
+        await BABYLON.SceneLoader.AppendAsync("./", "poly.glb", scene);
+
+        // Standard camera and lighting matching webgpu.html
+        scene.createDefaultCameraOrLight(true, true, true);
+        if (scene.activeCamera) {
+          scene.activeCamera.attachControl(canvas, true);
+          scene.activeCamera.wheelPrecision = 50;
+        }
+
+        // Add a directional light for crisp specular glints on metallic/chrome surfaces
+        const dirLight = new BABYLON.DirectionalLight(
+          "specularDirLight",
+          new BABYLON.Vector3(-1, -2, -1),
+          scene
+        );
+        dirLight.intensity = 1.3;
+        dirLight.specular = new BABYLON.Color3(1.0, 1.0, 1.0);
+
+        // Cache original materials for the loaded poly.glb model meshes
+        const meshOriginalMaterials = new Map();
+        scene.meshes.forEach((mesh) => {
+          if (mesh.material) {
+            meshOriginalMaterials.set(mesh, mesh.material);
+          }
+        });
+
+        if (meshOriginalMaterials.size === 0) {
+          console.warn("No meshes with materials found in loaded scene.");
+        }
+
+        // Add Babylon default environment for realistic PBR reflections & sky/ground horizon
+        try {
+          scene.createDefaultEnvironment({
+            createSkybox: true,
+            createGround: true,
+            skyboxSize: 150,
+            groundSize: 150,
+            enableGroundShadow: false,
+          });
+          // Boost environment intensity so chrome/metallic reflections are bright and vivid
+          scene.environmentIntensity = 1.5;
+        } catch (e) {
+          console.warn("Default environment could not be created:", e);
+        }
+
+        // Ensure an environment reflection texture exists for PBR materials
+        if (!scene.environmentTexture) {
+          try {
+            scene.environmentTexture = BABYLON.CubeTexture.CreateFromPrefilteredData(
+              "https://assets.babylonjs.com/environments/environmentSpecular.env",
+              scene
+            );
+          } catch (e) {}
+        }
+
+        // Look preset configurations using Babylon.js PBR properties
+        const PRESET_CONFIGS = {
+          original: {
+            name: "Original Scan",
+            desc: "Restored unedited photogrammetry scan textures",
+          },
+          wetGloss: {
+            name: "Wet Gloss",
+            desc: "Lacquer clearcoat with sharp specular gloss and low roughness",
+            apply(mat) {
+              mat.metallic = 0.05;
+              mat.roughness = 0.08;
+              if (mat.clearCoat) {
+                mat.clearCoat.isEnabled = true;
+                mat.clearCoat.intensity = 1.0;
+                mat.clearCoat.roughness = 0.03;
+                mat.clearCoat.indexOfRefraction = 1.55;
+              }
+              mat.emissiveColor = new BABYLON.Color3(0, 0, 0);
+              mat.albedoColor = new BABYLON.Color3(1.0, 1.0, 1.0);
+            },
+          },
+          pearlescent: {
+            name: "Pearlescent",
+            desc: "Satin metallic pearl sheen with subtle iridescent reflection",
+            apply(mat) {
+              mat.metallic = 0.65;
+              mat.roughness = 0.28;
+              if (mat.clearCoat) {
+                mat.clearCoat.isEnabled = true;
+                mat.clearCoat.intensity = 0.95;
+                mat.clearCoat.roughness = 0.08;
+                if (mat.clearCoat.isTintEnabled !== undefined) {
+                  mat.clearCoat.isTintEnabled = true;
+                  mat.clearCoat.tintColor = new BABYLON.Color3(0.95, 0.8, 1.0);
+                }
+              }
+              if (mat.iridescence) {
+                mat.iridescence.isEnabled = true;
+                mat.iridescence.intensity = 1.0;
+                mat.iridescence.indexOfRefraction = 1.45;
+              }
+              mat.emissiveColor = new BABYLON.Color3(0.08, 0.04, 0.12);
+              mat.albedoColor = new BABYLON.Color3(1.0, 0.95, 1.0);
+            },
+          },
+          moonlitBlue: {
+            name: "Moonlit Blue",
+            desc: "Luminous nocturnal cyan-blue ambient and clearcoat sheen",
+            apply(mat) {
+              mat.metallic = 0.25;
+              mat.roughness = 0.38;
+              if (mat.clearCoat) {
+                mat.clearCoat.isEnabled = true;
+                mat.clearCoat.intensity = 0.8;
+                mat.clearCoat.roughness = 0.15;
+              }
+              mat.emissiveColor = new BABYLON.Color3(0.06, 0.15, 0.34);
+              mat.albedoColor = new BABYLON.Color3(0.75, 0.88, 1.0);
+            },
+          },
+          reflectiveChrome: {
+            name: "Reflective Chrome",
+            desc: "Mirror metallic chrome with gold & silver environment reflections",
+            apply(mat) {
+              mat.metallic = 0.98;
+              mat.roughness = 0.05;
+              if (mat.clearCoat) {
+                mat.clearCoat.isEnabled = true;
+                mat.clearCoat.intensity = 1.0;
+                mat.clearCoat.roughness = 0.01;
+                mat.clearCoat.indexOfRefraction = 1.6;
+              }
+              if (mat.environmentIntensity !== undefined) {
+                mat.environmentIntensity = 1.8;
+              }
+              // Subtle ambient specular lift
+              mat.emissiveColor = new BABYLON.Color3(0.04, 0.04, 0.05);
+              mat.albedoColor = new BABYLON.Color3(1.0, 1.0, 1.0);
+            },
+          },
+        };
+
+        // Recursively clone material (handles PBRMaterial, MultiMaterial, and material arrays safely)
+        function createMaterialVariant(sourceMat, presetKey) {
+          if (presetKey === "original") {
+            return sourceMat;
+          }
+
+          if (Array.isArray(sourceMat)) {
+            return sourceMat.map((sub) =>
+              sub ? createMaterialVariant(sub, presetKey) : null
+            );
+          }
+
+          if (sourceMat instanceof BABYLON.MultiMaterial) {
+            const multi = new BABYLON.MultiMaterial(
+              sourceMat.name + "_" + presetKey,
+              scene
+            );
+            multi.subMaterials = sourceMat.subMaterials.map((sub) =>
+              sub ? createMaterialVariant(sub, presetKey) : null
+            );
+            return multi;
+          }
+
+          // Clone source material (preserves original albedoTexture, bumpTexture, and UV maps)
+          const cloned = sourceMat.clone(sourceMat.name + "_" + presetKey);
+          const config = PRESET_CONFIGS[presetKey];
+          if (config && config.apply) {
+            config.apply(cloned);
+          }
+          return cloned;
+        }
+
+        // Pre-create and cache preset materials for each mesh to avoid stacking changes
+        const meshPresetMap = new Map();
+        for (const [mesh, origMat] of meshOriginalMaterials.entries()) {
+          meshPresetMap.set(mesh, {
+            original: origMat,
+            wetGloss: createMaterialVariant(origMat, "wetGloss"),
+            pearlescent: createMaterialVariant(origMat, "pearlescent"),
+            moonlitBlue: createMaterialVariant(origMat, "moonlitBlue"),
+            reflectiveChrome: createMaterialVariant(origMat, "reflectiveChrome"),
+          });
+        }
+
+        // Apply chosen look across all meshes
+        function setLook(presetKey) {
+          const config = PRESET_CONFIGS[presetKey];
+          if (!config) return;
+
+          for (const [mesh, presets] of meshPresetMap.entries()) {
+            if (presets[presetKey]) {
+              mesh.material = presets[presetKey];
+            }
+          }
+
+          lookButtons.forEach((btn) => {
+            btn.classList.toggle("active", btn.dataset.look === presetKey);
+          });
+
+          if (statusText) {
+            statusText.textContent = `Active look: ${config.name}`;
+          }
+        }
+
+        lookButtons.forEach((btn) => {
+          if (btn.dataset.look) {
+            btn.addEventListener("click", () => {
+              setLook(btn.dataset.look);
+            });
+          }
+        });
+
+        // Screenshot capture button for submission (Part 7)
+        const btnScreenshot = document.getElementById("btn-screenshot");
+        if (btnScreenshot) {
+          btnScreenshot.addEventListener("click", () => {
+            BABYLON.Tools.CreateScreenshot(engine, scene.activeCamera, {
+              precision: 2,
+            });
+          });
+        }
+
+        // Expose global handles for testing / verification
+        window.__scene = scene;
+        window.__engine = engine;
+        window.__setLook = setLook;
+        window.__meshPresetMap = meshPresetMap;
+
+        // Ready: hide loading message and show controls
+        message.remove();
+        uiPanel.style.display = "block";
+
+        engine.runRenderLoop(() => scene.render());
+        window.addEventListener("resize", () => engine.resize());
+      } catch (error) {
+        console.error(error);
+        message.style.display = "block";
+        message.style.background = "rgba(180, 20, 20, 0.88)";
+        message.innerHTML =
+          "<strong>Could not start WebGPU or load poly.glb.</strong><br/>" +
+          (error.message ||
+            "Check browser WebGPU support (Chrome/Edge 113+) and the file path.");
+      }
+    </script>
+  </body>
+</html>
